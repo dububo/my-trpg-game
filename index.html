@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邊境飛地：九十日屠龍記 (真·AI 試玩版)</title>
+    <style>
+        body { background-color: #1a1a1a; color: #e0e0e0; font-family: system-ui, sans-serif; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .header { text-align: center; border-bottom: 2px solid #444; padding-bottom: 10px; color: #ff4d4d; }
+        .setup-screen { background-color: #2a2a2a; padding: 20px; border-radius: 8px; margin-top: 20px; border: 1px solid #444; }
+        .status-panel { display: none; justify-content: space-between; background-color: #2a2a2a; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #333; }
+        .status-item { font-weight: bold; }
+        .game-log { display: none; background-color: #111; border: 1px solid #333; padding: 20px; height: 350px; overflow-y: auto; border-radius: 8px; margin-top: 20px; line-height: 1.6; }
+        .dm-text { color: #4db8ff; margin-bottom: 15px; white-space: pre-wrap; }
+        .system-text { color: #ffcc00; font-weight: bold; margin-bottom: 15px; }
+        .choice-container { display: none; margin-top: 20px; background-color: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; }
+        .choice-btn { display: block; width: 100%; text-align: left; padding: 12px; margin-bottom: 10px; background-color: #333; color: #fff; border: 1px solid #555; border-radius: 6px; cursor: pointer; font-size: 15px; }
+        .choice-btn:hover { background-color: #444; border-color: #ff4d4d; }
+        .custom-input-area { display: flex; gap: 10px; margin-top: 15px; border-top: 1px solid #444; padding-top: 15px; }
+        input[type="text"], input[type="password"] { flex: 1; padding: 12px; background-color: #2b2b2b; border: 1px solid #444; color: #fff; border-radius: 6px; }
+        .btn { padding: 12px 24px; background-color: #ff4d4d; border: none; color: white; font-weight: bold; border-radius: 6px; cursor: pointer; }
+        .btn:disabled { background-color: #555; cursor: not-allowed; }
+        .class-btn { background-color: #444; color: white; border: 1px solid #666; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin-right: 10px; }
+        .class-btn.selected { background-color: #ff4d4d; border-color: #ff4d4d; }
+        .loading { display: none; color: #ffcc00; text-align: center; margin-top: 10px; font-weight: bold; }
+        .dead-screen { display: none; text-align: center; color: #ff3333; font-size: 24px; margin-top: 50px; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div class="header">
+            <h2>⚔️ 邊境飛地：九十日屠龍記 (真·AI 試玩版) ⚔️</h2>
+        </div>
+
+        <div id="setup-screen" class="setup-screen">
+            <h3>🔑 第一步：輸入 Gemini API 金鑰 (Key)</h3>
+            <p style="font-size: 14px; color: #aaa;">*(此 Prototype 採用玩家自備 Key 模式，你的 Key 只會存在本地瀏覽器，絕對安全)*</p>
+            <input type="password" id="api-key-input" placeholder="請貼上 AI Studio 申請的 API Key (AIzaSy...)" style="width: 95%; margin-bottom: 20px;">
+            
+            <h3>🎭 第二步：選擇你的冒險職業</h3>
+            <div style="margin-bottom: 20px;">
+                <button class="class-btn" onclick="selectClass('🛡️ 聖騎士', this)">🛡️ 聖騎士 (高血量/守序)</button>
+                <button class="class-btn" onclick="selectClass('🔮 元素使', this)">🔮 元素使 (高爆發/混亂)</button>
+                <button class="class-btn" onclick="selectClass('🗡️ 刺客', this)">🗡️ 刺客 (高敏捷/亦正亦邪)</button>
+            </div>
+            <button class="btn" style="width: 100%; font-size: 18px;" onclick="startGame()">啟動九十日屠龍冒險 ➔</button>
+        </div>
+
+        <div class="status-panel" id="status-panel">
+            <div class="status-item">⏳ 倒數：<span id="days-left">90</span> 天</div>
+            <div class="status-item">❤️ 生命：<span id="hp-val">20</span>/<span id="max-hp">20</span></div>
+            <div class="status-item">🎭 傾向：<span id="alignment">中立 (0)</span></div>
+            <div class="status-item">🎒 職業/裝備：<span id="player-class">未選擇</span></div>
+        </div>
+
+        <div class="game-log" id="game-log"></div>
+        <div id="loading-indicator" class="loading">⏳ AI DM 正在瘋狂編寫世界劇情中... 請稍候...</div>
+
+        <div class="choice-container" id="choice-container">
+            <button class="choice-btn" id="opt1" onclick="pickOption(1)"></button>
+            <button class="choice-btn" id="opt2" onclick="pickOption(2)"></button>
+            
+            <div class="custom-input-area">
+                <span style="line-height: 40px; font-weight: bold; color: #ffcc00; min-width: 80px;">3️⃣ 自由：</span>
+                <input type="text" id="player-input" placeholder="自由發揮你的騷操作... (例如：用冰核打造中甲)" onkeydown="if(event.key === 'Enter') submitCustomAction()">
+                <button class="btn" onclick="submitCustomAction()">執行</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dead-screen" class="dead-screen">
+        <h1>💀 世界經已毀滅 💀</h1>
+        <p>你未能挺過九十日，巨龍的陰影籠罩了大地。</p>
+        <button class="btn" onclick="location.reload()">重新投胎（重頭來过）</button>
+    </div>
+
+    <script>
+        let apiKey = "";
+        let gameState = { daysLeft: 90, hp: 20, maxHp: 20, alignment: 0, pClass: "", chatHistory: [] };
+        let currentOptions = { opt1: "", opt2: "" };
+
+        // 系統緊箍咒：強制 Gemini 每次都輸出指定格式的 JSON
+        const SYSTEM_INSTRUCTION = `
+你是一位極具創意、幽默且帶點刻薄、精通TRPG的地下城主(DM)。
+正在主持一場名為《邊境飛地：九十日屠龍記》的暗黑奇幻跑團遊戲。
+玩家的最終目標是在90天內變強並擊敗北方的遠古巨龍。
+今天是第1天，玩家在一間陰暗潮濕的地牢中醒來，外面有一個打瞌睡的守衛。
+每次玩家做出行動，你必須以繁體中文(包含適量廣東話口語，使其更生動)推進劇情，並「嚴格」以下列 JSON 格式回傳，不能包含任何 JSON 之外的廢話或 Markdown 標籤：
+{
+  "storyText": "描述發生的劇情，字數約150-200字，要極具帶入感。",
+  "systemNote": "用括號或提示說明這一步造成的數值影響或檢定結果。",
+  "option1": "給玩家的固定選項一（偏向善良/守序/常規的做法）。",
+  "option2": "給玩家的固定選項二（偏向邪惡/混亂/瘋狂或摧毀聖物的做法）。",
+  "hp_change": 填入整數(例如 -5, 0, 5)，代表此行動對玩家造成的生命值改變,
+  "alignment_change": 填入整數(例如 -10, 0, 10)，正數代表變好人，負數代表變黑化惡魔
+}
+注意：地圖北方的龍之谷從第一天起就開放，若玩家要求直接去打龍，必須允許並進入決戰，若沒足夠裝備，難度極高。
+`;
+
+        function selectClass(className, btnEl) {
+            gameState.pClass = className;
+            document.querySelectorAll('.class-btn').forEach(b => b.classList.remove('selected'));
+            btnEl.classList.add('selected');
+            if(className.includes("聖騎士")) { gameState.hp = 30; gameState.maxHp = 30; }
+            else { gameState.hp = 20; gameState.maxHp = 20; }
+        }
+
+        function startGame() {
+            apiKey = document.getElementById('api-key-input').value.trim();
+            if(!apiKey) { alert("請先輸入 Gemini API Key！"); return; }
+            if(!gameState.pClass) { alert("請選擇你的職業！"); return; }
+
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('status-panel').style.display = 'flex';
+            document.getElementById('game-log').style.display = 'block';
+            document.getElementById('choice-container').style.display = 'block';
+            
+            updateUI();
+
+            // 開局第一步
+            const prologue = `【旁白】：遠古預言正在應驗，沉睡的巨龍即將在90天後甦醒。而在這場末日倒數的起點……\n\n我是${gameState.pClass}，我現在於地牢中張開眼睛，開始我的第一天。`;
+            callGeminiAPI(prologue);
+        }
+
+        async function callGeminiAPI(playerInputText) {
+            document.getElementById('loading-indicator').style.display = 'block';
+            gameState.daysLeft -= 1;
+            updateUI();
+
+            // 將玩家輸入加入短期記憶
+            gameState.chatHistory.push({ role: "user", parts: [{ text: playerInputText }] });
+
+            // 只保留最近 6 輪對話，防止爆 Context
+            if(gameState.chatHistory.length > 12) gameState.chatHistory = gameState.chatHistory.slice(-12);
+
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: gameState.chatHistory,
+                        systemInstruction: { parts: [{ text: SYSTEM_INSTRUCTION }] },
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await response.json();
+                const aiResponseRaw = data.candidates[0].content.parts[0].text;
+                const resJson = JSON.parse(aiResponseRaw);
+
+                // 更新狀態
+                gameState.hp = Math.min(gameState.maxHp, Math.max(0, gameState.hp + resJson.hp_change));
+                gameState.alignment += resJson.alignment_change;
+                
+                // 記錄 AI 的回覆到歷史紀錄中
+                gameState.chatHistory.push({ role: "model", parts: [{ text: aiResponseRaw }] });
+
+                // 打印到 Log 畫面
+                const logEl = document.getElementById('game-log');
+                if(playerInputText.indexOf("【旁白】") === -1) {
+                    logEl.innerHTML += `<div style="color: #ffcc00; margin-top:15px;"><b>你的行動：</b> ${playerInputText}</div>`;
+                }
+                logEl.innerHTML += `<div class="dm-text">${resJson.storyText}</div>`;
+                logEl.innerHTML += `<div class="system-text">${resJson.systemNote}</div>`;
+                logEl.scrollTop = logEl.scrollHeight;
+
+                // 檢查是否死亡
+                if(gameState.hp <= 0) {
+                    document.getElementById('game-container').style.display = 'none';
+                    document.getElementById('dead-screen').style.display = 'block';
+                    return;
+                }
+
+                // 更新按鈕選項
+                currentOptions.opt1 = resJson.option1;
+                currentOptions.opt2 = resJson.option2;
+                document.getElementById('opt1').innerText = `1️⃣ ${resJson.option1}`;
+                document.getElementById('opt2').innerText = `2️⃣ ${resJson.option2}`;
+
+                updateUI();
+
+            } catch (error) {
+                console.error(error);
+                alert("API 呼叫失敗，請檢查 Key 是否正確或網絡是否穩定！");
+            } finally {
+                document.getElementById('loading-indicator').style.display = 'none';
+            }
+        }
+
+        function pickOption(num) {
+            const text = num === 1 ? currentOptions.opt1 : currentOptions.opt2;
+            callGeminiAPI(text);
+        }
+
+        function submitCustomAction() {
+            const inputEl = document.getElementById('player-input');
+            const text = inputEl.value.trim();
+            if(!text) return;
+            inputEl.value = "";
+            callGeminiAPI(text);
+        }
+
+        function updateUI() {
+            document.getElementById('days-left').innerText = gameState.daysLeft;
+            document.getElementById('hp-val').innerText = gameState.hp;
+            document.getElementById('max-hp').innerText = gameState.maxHp;
+            document.getElementById('player-class').innerText = gameState.pClass;
+            
+            let alignText = `中立 (${gameState.alignment})`;
+            if (gameState.alignment > 15) alignText = `聖人 (+${gameState.alignment}) 😇`;
+            if (gameState.alignment < -15) alignText = `惡魔 (${gameState.alignment}) 😈`;
+            document.getElementById('alignment').innerText = alignText;
+        }
+    </script>
+</body>
+</html>
