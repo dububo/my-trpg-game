@@ -2,42 +2,59 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>終極遠征：九十日屠龍</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>邊境飛地：九十日屠龍記</title>
   <style>
-    body { background: #000; color: #fff; font-family: sans-serif; padding: 20px; }
-    #setup, #game { max-width: 600px; margin: auto; }
-    input { width: 100%; padding: 10px; margin: 10px 0; background: #222; border: 1px solid #555; color: #fff; }
-    button { padding: 10px 20px; background: #ff4757; border: none; color: #fff; cursor: pointer; width: 100%; }
+    body { background: #1a1a1a; color: #fff; font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; }
+    #log { height: 300px; overflow-y: auto; border: 1px solid #444; padding: 10px; background: #222; margin-bottom: 10px; }
+    input, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 5px; border: 1px solid #555; background: #333; color: white; }
+    button { background: #ff4757; cursor: pointer; font-weight: bold; }
+    .status { display: flex; justify-content: space-between; font-size: 0.8rem; color: #ffcc00; margin-bottom: 10px; }
   </style>
 </head>
 <body>
   <div id="setup">
-    <h3>輸入 API Key (掛 VPN)</h3>
+    <h3>API Key (掛 VPN)</h3>
     <input type="password" id="key" placeholder="sk-or-v1-...">
+    <h3>選擇職業</h3>
+    <select id="job" style="width:100%; padding:10px; background:#333; color:white;">
+      <option value="聖騎士">🛡️ 聖騎士</option>
+      <option value="元素使">🔮 元素使</option>
+    </select>
     <button onclick="start()">開始冒險</button>
   </div>
+
   <div id="game" style="display:none;">
-    <div id="log" style="height: 300px; overflow-y: scroll; border: 1px solid #333; padding: 10px;"></div>
-    <input type="text" id="input" placeholder="下一步...">
-    <button onclick="send()">執行</button>
+    <div class="status"><span>⏳ 90日</span> <span>❤️ HP 20</span></div>
+    <div id="log"></div>
+    <input type="text" id="input" placeholder="輸入行動...">
+    <button onclick="send()">執行行動</button>
   </div>
 
   <script>
     let k = "";
-    function start() { k = document.getElementById('key').value; document.getElementById('setup').style.display='none'; document.getElementById('game').style.display='block'; }
+    function start() { 
+      k = document.getElementById('key').value; 
+      document.getElementById('setup').style.display='none'; 
+      document.getElementById('game').style.display='block';
+      log("系統: 冒險開始！你嘅職業係 " + document.getElementById('job').value);
+    }
+    function log(msg) { document.getElementById('log').innerHTML += `<p>${msg}</p>`; }
     async function send() {
       const msg = document.getElementById('input').value;
-      document.getElementById('log').innerHTML += `<p>你: ${msg}</p>`;
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${k}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "anthropic/claude-3.5-sonnet",
-          messages: [{role: "user", content: "你係DM，進行九十日屠龍記，請回應：" + msg}]
-        })
-      });
-      const d = await res.json();
-      document.getElementById('log').innerHTML += `<p>DM: ${d.choices[0].message.content}</p>`;
+      log("你: " + msg);
+      try {
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + k, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: "anthropic/claude-3.5-sonnet",
+            messages: [{role: "user", content: "你是DM，進行九十日屠龍記，玩家職業" + document.getElementById('job').value + "。回應此行動：" + msg}]
+          })
+        });
+        const d = await res.json();
+        log("DM: " + d.choices[0].message.content);
+      } catch(e) { log("錯誤: 請求失敗，檢查 VPN 或 Key。"); }
     }
   </script>
 </body>
