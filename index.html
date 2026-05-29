@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>邊境飛地：九十日屠龍記 (Llama3 終極免限制版)</title>
+  <title>邊境飛地：九十日屠龍記 (Gemini2.0 免費通行版)</title>
   <style>
     body { background-color: #1a1a1a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto; }
     .header { text-align: center; border-bottom: 2px solid #ff4757; padding-bottom: 10px; margin-bottom: 20px; }
@@ -32,7 +32,7 @@
   <!-- 設定畫面 -->
   <div id="setupScreen" class="setup-screen">
     <h3>🔑 第一步：輸入 OpenRouter API 金鑰 (Key)</h3>
-    <p style="font-size:0.85rem; color:#aaa;">*(Llama3 免限制版：請貼上你申請的 sk-or-v1- 金鑰)*</p>
+    <p style="font-size:0.85rem; color:#aaa;">*(Gemini2.0 免費通行版：請貼上你申請的 sk-or-v1- 金鑰)*</p>
     <input type="password" id="apiKeyInput" placeholder="請貼上 sk-or-v1- 開頭的 Key...">
     
     <h3 style="margin-top:25px;">🎭 第二步：選擇你的冒險職業</h3>
@@ -131,7 +131,7 @@
             "X-Title": "TRPG Dragon Game"
           },
           body: JSON.stringify({
-            model: "meta-llama/llama-3-8b-instruct:free", 
+            model: "google/gemini-2.0-flash-exp:free", 
             messages: [
               { role: "system", content: systemPrompt },
               ...gameState.history.map(h => ({ role: h.role, content: h.content }))
